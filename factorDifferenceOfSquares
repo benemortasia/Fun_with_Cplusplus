@@ -1,0 +1,281 @@
+/**
+Date Created: 11/9/2017
+Last Updated: 4/17/2018
+ 
+Purpose: Takes some user-supplied number n and checks if
+it can be written as a difference of squares, (p^2 - q^2).
+ 
+Things to note:
+ 
+** EDITED 11/10/2017 to run MRPrimalityTest on N, reducing amount of time taken drastically.
+** Factor(1299827, p, q, first, second) would normally take 648774 tries.
+** With MRPrimalityTest(1299827, 100), the test passes and no tries are attempted.
+** IF MRPrimalityTest fails, it will still take approximately (N/2 - sqrt(N) + 1) tries.
+** Problem with this is if N is too large, MRPrimalityTest() will pass and N is assumed to
+** be prime, when in reality it isn't.
+** Will probably add some sort of check to fix this
+/// For any prime N, Factor(N, p, q, first, second) takes approximately (N/2 - sqrt(N) + 1) tries.
+/// (7/2 - sqrt(7) + 1) = 1.85424868894 -> 2 tries
+/// (53/2 - sqrt(53) + 1) = 20.2198901107 - > 20 tries
+/// (4441/2 - sqrt(4441) + 1) = 2154.85917167 -> 2155 tries
+/// (68819/2 - sqrt(68819) + 1) = 34148.1662431 -> 34148 tries
+** 7, 53, 4441, 68819, and 1299827 are almost instantly recognized as primes. No tries attempted.
+ 
+The factoring of a product of primes takes few tries relative to the size of the prime,
+if and only if both prime factors share the same number of digits.
+If both prime factors share the same number of digits,
+the amount of tries for a product of primes is always 1 digit less than the primes' digits:
+Factoring 16466237 (2131 * 7727) takes 872 tries.
+Factoring 1748759609 (25411 * 68819) takes 5297 tries.
+Factoring 524278087121 (524287 * 999983) takes 38065 tries.
+ 
+The greater the disparity in primes, the larger the number of tries:
+Factoring 3992396647 (68819 * 58013) takes 231 tries.
+Factoring 305625179 (68819 * 4441) takes 19148 tries.
+Factoring 481733 (68819 * 7) takes 33719 tries.
+ 
+Best case:
+n is a perfect square up to 15 digits -> constant 1 try.
+n is a product of primes in which both primes are extremely close -> 1 try.
+e.g., Factoring 1,690,707,066,959 takes only 1 try. (1,299,817 * 1,300,727)
+ 
+Worst case:
+n cannot be factored into a difference of squares -> takes (N - sqrt(N)) tries.
+e.g., Factoring 64442 takes 64188 tries.
+Currently thinking of ways to greatly shorten the amount of tries...
+primalityTest(n / 2, 100)
+if true, we found product of primes and difference of squares
+ 
+LOC = 132
+ 
+@author Jordan Page
+*/
+ 
+#include<math.h> // pow(), ceil(), floor(), round()
+#include<iostream>
+#include <stdlib.h> // rand()
+ 
+//const long long MAX = 20;
+ 
+//long long table[MAX];
+ 
+//void Initialize(long long table[MAX]);
+ 
+/**
+Attempts to factor a user-supplied number n into a difference of squares, (p^2 - q^2).
+ 
+@param n - number to be checked
+@param p - first number to be squared
+@param q - second number to be squared
+@param first - first prime factor
+@param second - second prime factor
+@return true if n can be factored into a difference of squares
+*/
+bool Factor(unsigned long long n, unsigned long long & p, unsigned long long & q, unsigned long long & first, unsigned long long & second);
+ 
+/**
+Attempts to run a Miller-Rabin Primality Test on a user-supplied number n.
+ 
+@param n - number to be primality tested
+@param acc - accuracy level, i.e., amount of attempts at checking primality
+@return true if n is probably a prime
+*/
+bool MRPrimalityTest(const unsigned long long n, int acc);
+ 
+int main()
+{
+    unsigned long long n, p = 0, q = 0, first = 0, second = 0;
+    char c;
+    bool done = false;
+ 
+    //Initialize(table);
+ 
+    while (!done)
+    {
+        printf("Enter some number 'n' to be factored into a difference of squares.\n");
+        std::cin >> n;
+ 
+        // successfully factored 10,081,878,677,818,001 (100,111,001 * 100,707,007) in 443 tries
+        // unsuccessfully factors 142,956,442,144,444,829 (377,999,773 * 378,191,873)
+        if (n > 100,000,000,000,000,000)
+        {
+            printf("n appears to be extremely large - program may be\n");
+            printf("inconclusive and computationally intensive. Continue?\n");
+            system("pause");
+        }
+ 
+        printf("Is %llu probably prime? %s \n", n, (MRPrimalityTest(n, 100) ? "Yes" : "No"));
+ 
+        printf("\nDoes %llu factor into a difference of squares?\n", n);
+        if (Factor(n, p, q, first, second))
+        {
+            // n = (p^2 - q^2)
+            printf("Yes, %llu factors.\n", n);
+ 
+            printf("p is: %llu \n", p);
+            printf("q is: %llu \n", q);
+ 
+            printf("This means the number %llu can be factored into\n", n);
+            printf("a difference of squares, (%llu ^ 2) - (%llu ^ 2) = %f\n", p, q, pow(p, 2) - pow(q, 2));
+ 
+            // product of primes
+            // if (p == q + 1) is true, n is prime,
+            // and not the product of primes
+            // also, Primality test with 100 iterations is extremely quick and appears to be
+            // quite accurate, at least up to 9 digit primes like 100111001 and 100707001
+            if (q != 0 && (p != ++q) && (MRPrimalityTest(first, 100)) && (MRPrimalityTest(second, 100)))
+                printf(" is the product of two primes: \nThe first prime is %llu.\nand the second prime is %llu.\n", first, second);
+            else
+                printf("%llu is not the product of two primes.\n", n);
+ 
+            if (first == 1)
+                printf("%llu is also a prime.\n", n);
+ 
+            printf("Do you want to factor more numbers?(y/n): ");
+            std::cin >> c;
+ 
+            // if the user inputs anything other than n,
+            // assume they want to factor more numbers
+            if (tolower(c) != 'n')
+            {
+                std::cin.clear();
+                std::cin.ignore();
+                continue;
+            }
+            else
+                break;
+        }
+        else
+        {
+            printf("No, %llu does not factor.\n", n);
+            printf("Do you want to factor more numbers?(y/n): ");
+            std::cin >> c;
+            if (tolower(c) != 'n')
+            {
+                std::cin.clear();
+                std::cin.ignore();
+                continue;
+            }
+            else
+                break;
+ 
+        }
+    }
+    return 0;
+}
+ 
+//void Initialize(long long table[MAX])
+//{
+//  for (int i = 0; i <= MAX; i++)
+//      table[i] = i * i;
+//}
+ 
+//Attempts to factor a user-supplied number n into a difference of squares, (p^2 - q^2).
+bool Factor(unsigned long long n, unsigned long long & p, unsigned long long & q, unsigned long long & first, unsigned long long & second)
+{
+    int tries = 0;
+ 
+    // in case user wants to try a decimal or negative for some reason
+    n = round(n);
+ 
+    // if (n < 100000000 && MRPrimalityTest(n, 100))
+    // {
+    //  first = 1;
+    //  second = n;
+    //  p = ceil((double)n / 2);
+    //  q = floor((double)n / 2);
+    //  return true;
+    //}
+ 
+    // faster than starting at zero:
+    // we can start at the square root
+    // of n and take its ceiling...
+    for (long candidate = ceil(sqrt(n)); candidate < n; ++candidate)
+    {
+        tries++;
+        printf("Our candidate: %i\n", candidate);
+ 
+        // ...then, if (candidate)^2 - (n) equals some number that
+        // can be perfectly square rooted, no more checking needed
+        double x = pow(candidate, 2) - n;
+ 
+        printf("(candidate)^2 - (n) = %f - %llu = %f", pow(candidate, 2), n, x);
+        double sqrtX = sqrt(x);
+ 
+        if (sqrtX == ceil(sqrtX))
+        {
+            printf(", which is a perfect square (%f^2).\n", sqrtX);
+            p = candidate;
+            q = sqrtX;
+            first = (candidate - sqrtX);
+            second = (candidate + sqrtX);
+ 
+            printf("Total tries: %i\n\n", tries);
+ 
+            return true;
+        }
+        printf(", which is not a perfect square.\n");
+    }
+    printf("Total tries: %i\n\n", tries);
+    return false;
+}
+ 
+/**
+Tests if n is *probably* prime.
+ 
+Known pseudoprimes: 1189 (29 * 41)
+*/
+bool MRPrimalityTest(const unsigned long long n, int acc)
+{
+    unsigned long long m = 0;
+    unsigned long long x;
+    int k = 0;
+ 
+    // dividing a long long by an int is shaky
+    // cast n to double for checks (safe if n is small)
+    const double checkN = (double)n;
+ 
+    // if n is 1 or 2.. quit
+    if (checkN <= 1 || checkN == 4)
+        return false;
+    else if (checkN <= 3)
+        return true;
+ 
+    // if n is a perfect square.. quit
+    if (sqrt(n) == ceil(sqrt(n)))
+        return false;
+ 
+    // n - 1 = m * 2^k
+    // find m by dividing by 2 until not possible anymore
+    // increment k each time we divide by 2
+    unsigned long long b = n - 1;
+    while (b % 2 == 0)
+    {
+        ++k;
+        m = b / 2;
+        b = m;
+    }
+ 
+    for (int i = 0; i < acc; ++i)
+    {
+        int a = 2 + rand() % (n - 4); // a in the range 2 <= a <= n-2
+ 
+        // std::cout << a << std::endl;
+ 
+        x = pow(a, m);
+        x = x % n;
+        if (x == 1 || x == (n - 1))
+            return true;
+        else
+        {
+            x = pow(x, 2);
+            x = x % n;
+            if (x == 1)
+                return false;
+            if (x == (n - 1))
+                return true;
+        }
+    }
+ 
+    return true;
+}
